@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telco Support Tickets Dataset Generator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const TelcoDatasetGenerator = () => {
+            const [dataset, setDataset] = useState(null);
+            const [generating, setGenerating] = useState(false);
+            const [stats, setStats] = useState(null);
+
+            // Category definitions with Arabic/English examples
+            const categories = {
+                'Network / Connectivity': {
+                    weight: 0.25,
+                    en_templates: [
+                        "internet not working since {time}",
+                        "no signal in my area",
+                        "very slow speed cant watch anything",
+                        "connection keeps dropping every few minutes",
+                        "wifi not working pls fix urgent",
+                        "no internet connection at all",
+                        "signal lost completely",
+                        "speed is terrible cant use",
+                        "disconnects all the time",
+                        "network down help"
+                    ],
+                    ar_templates: [
+                        "النت فاصل من {time}",
+                        "ما في اشارة عندي",
+                        "النت بطيء جدا مش قادر استخدمه",
+                        "الاتصال يقطع كل شوية",
+                        "الواي فاي مش شغال",
+                        "ما في انترنت خالص",
+                        "الاشارة راحت تماما",
+                        "السرعة سيئة جدا",
+                        "ينقطع طول الوقت",
+                        "الشبكة معطلة"
+                    ],
+                    mixed_templates: [
+                        "internet فاصل من الصبح",
+                        "no signal في منطقتي",
+                        "speed بطيئة جدا",
+                        "connection يقطع كل دقيقة",
+                        "wifi مش شغال urgent"
+                    ]
+                },
+                'Billing & Payments': {
+                    weight: 0.20,
+                    en_templates: [
+                        "charged twice this month check it",
+                        "wrong amount on bill",
+                        "why so expensive this month??",
+                        "invoice wrong pls fix",
+                        "double charge on my account",
+                        "billing error need refund",
+                        "overcharged again",
+                        "payment failed but money deducted",
+                        "bill is incorrect",
+                        "charged for service i dont have"
+                    ],
+                    ar_templates: [
+                        "حاسبوني مرتين هالشهر",
+                        "الفاتورة غلط",
+                        "ليش غالية كتير هالشهر؟",
+                        "فيه خطأ في الحساب",
+                        "شحن مضاعف",
+                        "خصموا زيادة",
+                        "الفاتورة مش صحيحة",
+                        "الدفع فشل بس المبلغ اتخصم",
+                        "حاسبوني على خدمة ما عندي",
+                        "غلط في الفاتورة"
+                    ],
+                    mixed_templates: [
+                        "billing غلط محتاج refund",
+                        "charged مرتين pls check",
+                        "invoice مش صح",
+                        "payment failed بس المبلغ راح",
+                        "فاتورة wrong urgent"
+                    ]
+                },
+                'Account & Authentication': {
+                    weight: 0.15,
+                    en_templates: [
+                        "cant login to my account",
+                        "forgot password help",
+                        "account locked need access",
+                        "verification code not coming",
+                        "cant access account",
+                        "login not working",
+                        "sim registration problem",
+                        "pin blocked help",
+                        "account access denied",
+                        "otp not received"
+                    ],
+                    ar_templates: [
+                        "مش قادر ادخل على حسابي",
+                        "نسيت الباسورد",
+                        "الحساب مقفل",
+                        "كود التفعيل ما وصل",
+                        "ما قدرت ادخل",
+                        "مشكلة في تسجيل الدخول",
+                        "تسجيل الشريحة ما اشتغل",
+                        "الرقم السري مقفل",
+                        "الحساب محظور",
+                        "ما وصلني كود"
+                    ],
+                    mixed_templates: [
+                        "cant login للحساب",
+                        "password نسيتها help",
+                        "account مقفل urgent",
+                        "verification code ما وصل",
+                        "sim registration مشكلة"
+                    ]
+                },
+                'Roaming & International Services': {
+                    weight: 0.10,
+                    en_templates: [
+                        "no service abroad",
+                        "roaming not working in {country}",
+                        "international data not active",
+                        "cant use phone overseas",
+                        "roaming charges too high",
+                        "no signal in {country}",
+                        "data roaming disabled help",
+                        "international calls not working",
+                        "roaming package not activated"
+                    ],
+                    ar_templates: [
+                        "ما في خدمة برا البلد",
+                        "الروامنج مش شغال",
+                        "البيانات الدولية مش فعالة",
+                        "ما قدرت استخدم التلفون برا",
+                        "رسوم الروامنج غالية جدا",
+                        "ما في اشارة في {country}",
+                        "الروامنج معطل",
+                        "المكالمات الدولية مش شغالة"
+                    ],
+                    mixed_templates: [
+                        "roaming مش شغال برا",
+                        "no service في {country}",
+                        "international data معطلة",
+                        "data roaming مش فعال help"
+                    ]
+                },
+                'Service Activation / Changes': {
+                    weight: 0.12,
+                    en_templates: [
+                        "want to cancel my plan",
+                        "upgrade to new package pls",
+                        "activation not working",
+                        "need to change my plan",
+                        "downgrade request",
+                        "new service not activated",
+                        "plan change issue",
+                        "cant activate the service",
+                        "subscription cancellation",
+                        "package upgrade problem"
+                    ],
+                    ar_templates: [
+                        "ابغى الغي الباقة",
+                        "احتاج ترقية للباقة",
+                        "التفعيل مش شغال",
+                        "ابغى اغير الباقة",
+                        "طلب تخفيض",
+                        "الخدمة الجديدة ما اتفعلت",
+                        "مشكلة في تغيير الباقة",
+                        "ما قدرت افعل الخدمة",
+                        "الغاء الاشتراك"
+                    ],
+                    mixed_templates: [
+                        "plan ابغى الغيها",
+                        "upgrade محتاج للباقة",
+                        "activation مش شغال",
+                        "cancel my subscription urgent",
+                        "package change مشكلة"
+                    ]
+                },
+                'Device / Hardware': {
+                    weight: 0.08,
+                    en_templates: [
+                        "router not working",
+                        "sim card damaged need new one",
+                        "modem keeps restarting",
+                        "hardware problem with router",
+                        "device not connecting",
+                        "router lights blinking red",
+                        "sim not detected",
+                        "modem broken need replacement",
+                        "hardware fault"
+                    ],
+                    ar_templates: [
+                        "الراوتر مش شغال",
+                        "الشريحة خربانة احتاج جديدة",
+                        "المودم يعيد التشغيل",
+                        "مشكلة في الراوتر",
+                        "الجهاز ما يتصل",
+                        "اضواء الراوتر حمرا",
+                        "الشريحة ما تنقرا",
+                        "المودم خربان",
+                        "عطل في الجهاز"
+                    ],
+                    mixed_templates: [
+                        "router مش شغال help",
+                        "sim card خربانة need new",
+                        "modem يعيد التشغيل",
+                        "hardware مشكلة في الراوتر"
+                    ]
+                },
+                'Complaints & Service Quality': {
+                    weight: 0.08,
+                    en_templates: [
+                        "very bad service unacceptable",
+                        "complained many times no solution",
+                        "service quality terrible",
+                        "not happy with support",
+                        "same problem again and again",
+                        "poor service very disappointed",
+                        "no one helps me",
+                        "repeated issue not fixed",
+                        "worst service ever",
+                        "fed up with this"
+                    ],
+                    ar_templates: [
+                        "الخدمة سيئة جدا",
+                        "اشتكيت كتير ما في حل",
+                        "جودة الخدمة ردية",
+                        "مش راضي عن الدعم",
+                        "نفس المشكلة كل مرة",
+                        "خدمة سيئة جدا",
+                        "ما حد ساعدني",
+                        "المشكلة متكررة وما انحلت",
+                        "اسوأ خدمة",
+                        "زهقت من هالشي"
+                    ],
+                    mixed_templates: [
+                        "service سيء جدا unacceptable",
+                        "complained كتير no solution",
+                        "quality ردية very bad",
+                        "support مش كويس at all"
+                    ]
+                },
+                'Other': {
+                    weight: 0.10,
+                    en_templates: [
+                        "help pls",
+                        "problem",
+                        "urgent",
+                        "need assistance",
+                        "issue",
+                        "hello",
+                        "app not good",
+                        "staff rude",
+                        "website confusing",
+                        "general question",
+                        "billing and also internet problem both",
+                        "network issue plus account locked"
+                    ],
+                    ar_templates: [
+                        "مساعدة",
+                        "مشكلة",
+                        "عاجل",
+                        "احتاج مساعدة",
+                        "مشكلة عندي",
+                        "مرحبا",
+                        "التطبيق مش كويس",
+                        "الموظف غير محترم",
+                        "الموقع معقد",
+                        "سؤال",
+                        "فاتورة وكمان نت مشكلة",
+                        "شبكة وحساب مشاكل"
+                    ],
+                    mixed_templates: [
+                        "help محتاج",
+                        "problem عندي urgent",
+                        "مشكلة pls fix",
+                        "billing و network both"
+                    ]
+                }
+            };
+
+            const priorities = {
+                'P1': { weight: 0.05, desc: 'Critical' },
+                'P2': { weight: 0.15, desc: 'High' },
+                'P3': { weight: 0.40, desc: 'Medium' },
+                'P4': { weight: 0.40, desc: 'Low' }
+            };
+
+            const channels = ['call', 'email', 'chat', 'app', 'web'];
+
+            const generateTimestamp = (priorityBias = null) => {
+                const start = new Date('2024-12-01T00:00:00');
+                const end = new Date('2025-02-28T23:59:59');
+                const diffMs = end - start;
+                const randomMs = Math.random() * diffMs;
+                const date = new Date(start.getTime() + randomMs);
+                
+                // Day of week bias
+                const dayOfWeek = date.getDay();
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    if (Math.random() > 0.25) {
+                        return generateTimestamp(priorityBias);
+                    }
+                }
+                
+                // Time of day distribution
+                const hour = Math.floor(Math.random() * 24);
+                let hourToUse = hour;
+                
+                if (priorityBias === 'P1' || priorityBias === 'P2') {
+                    if (Math.random() < 0.3) {
+                        hourToUse = Math.random() < 0.5 ? 
+                            Math.floor(Math.random() * 9) : 
+                            22 + Math.floor(Math.random() * 2);
+                    } else {
+                        hourToUse = 9 + Math.floor(Math.random() * 13);
+                    }
+                } else {
+                    if (Math.random() < 0.7) {
+                        hourToUse = 9 + Math.floor(Math.random() * 9);
+                    } else if (Math.random() < 0.85) {
+                        hourToUse = 18 + Math.floor(Math.random() * 4);
+                    } else {
+                        hourToUse = Math.floor(Math.random() * 9);
+                        if (Math.random() < 0.3) hourToUse = 22 + Math.floor(Math.random() * 2);
+                    }
+                }
+                
+                date.setHours(hourToUse, Math.floor(Math.random() * 60), Math.floor(Math.random() * 60));
+                return date.toISOString();
+            };
+
+            const weightedRandom = (weights) => {
+                const items = Object.keys(weights);
+                const total = items.reduce((sum, item) => sum + weights[item].weight, 0);
+                let random = Math.random() * total;
+                
+                for (let item of items) {
+                    random -= weights[item].weight;
+                    if (random <= 0) return item;
+                }
+                return items[items.length - 1];
+            };
+
+            const addNoise = (text) => {
+                if (Math.random() < 0.15) {
+                    const noiseTypes = [
+                        () => text.replace(/the/g, 'teh'),
+                        () => text.replace(/and/g, 'nd'),
+                        () => text.replace(/please/gi, 'pls'),
+                        () => text.replace(/problem/gi, 'problm'),
+                        () => text + '!!',
+                        () => text + '???',
+                        () => text.replace(/ /g, '  '),
+                        () => text.toLowerCase(),
+                        () => text.toUpperCase()
+                    ];
+                    const noise = noiseTypes[Math.floor(Math.random() * noiseTypes.length)];
+                    return noise();
+                }
+                return text;
+            };
+
+            const generateTicket = (index) => {
+                const ticketId = `TKT${String(index).padStart(6, '0')}`;
+                
+                const langRand = Math.random();
+                let language, templateType;
+                
+                if (langRand < 0.15) {
+                    language = Math.random() < 0.5 ? 'en' : 'ar';
+                    templateType = 'mixed';
+                } else if (langRand < 0.65) {
+                    language = 'en';
+                    templateType = 'en';
+                } else {
+                    language = 'ar';
+                    templateType = 'ar';
+                }
+                
+                const category = weightedRandom(categories);
+                const categoryData = categories[category];
+                const priority = weightedRandom(priorities);
+                const createdAt = generateTimestamp(priority);
+                
+                const templates = categoryData[`${templateType}_templates`];
+                let ticketText = templates[Math.floor(Math.random() * templates.length)];
+                
+                ticketText = ticketText.replace('{time}', Math.random() < 0.5 ? 'morning' : 'yesterday');
+                ticketText = ticketText.replace('{country}', Math.random() < 0.5 ? 'UAE' : 'Egypt');
+                ticketText = addNoise(ticketText);
+                
+                const channel = channels[Math.floor(Math.random() * channels.length)];
+                
+                const missingLanguage = Math.random() < 0.07 ? '' : language;
+                const missingPriority = Math.random() < 0.10 ? '' : priority;
+                const missingChannel = Math.random() < 0.03 ? '' : channel;
+                
+                return {
+                    ticket_id: ticketId,
+                    created_at: createdAt,
+                    channel: missingChannel,
+                    ticket_text: ticketText,
+                    language: missingLanguage,
+                    true_category: category,
+                    true_priority: missingPriority
+                };
+            };
+
+            const generateDataset = () => {
+                setGenerating(true);
+                
+                setTimeout(() => {
+                    const size = 2000 + Math.floor(Math.random() * 1000);
+                    const tickets = [];
+                    
+                    for (let i = 1; i <= size; i++) {
+                        tickets.push(generateTicket(i));
+                    }
+                    
+                    const stats = {
+                        total: tickets.length,
+                        categories: {},
+                        priorities: {},
+                        languages: {},
+                        channels: {},
+                        missing: { language: 0, priority: 0, channel: 0 }
+                    };
+                    
+                    tickets.forEach(ticket => {
+                        stats.categories[ticket.true_category] = (stats.categories[ticket.true_category] || 0) + 1;
+                        if (ticket.true_priority) {
+                            stats.priorities[ticket.true_priority] = (stats.priorities[ticket.true_priority] || 0) + 1;
+                        } else {
+                            stats.missing.priority++;
+                        }
+                        if (ticket.language) {
+                            stats.languages[ticket.language] = (stats.languages[ticket.language] || 0) + 1;
+                        } else {
+                            stats.missing.language++;
+                        }
+                        if (ticket.channel) {
+                            stats.channels[ticket.channel] = (stats.channels[ticket.channel] || 0) + 1;
+                        } else {
+                            stats.missing.channel++;
+                        }
+                    });
+                    
+                    setDataset(tickets);
+                    setStats(stats);
+                    setGenerating(false);
+                }, 100);
+            };
+
+            const downloadCSV = () => {
+                if (!dataset) return;
+                
+                const headers = ['ticket_id', 'created_at', 'channel', 'ticket_text', 'language', 'true_category', 'true_priority'];
+                const csvContent = [
+                    headers.join(','),
+                    ...dataset.map(row => 
+                        headers.map(header => {
+                            const value = row[header] || '';
+                            if (value.toString().includes(',') || value.toString().includes('\n') || value.toString().includes('"')) {
+                                return `"${value.toString().replace(/"/g, '""')}"`;
+                            }
+                            return value;
+                        }).join(',')
+                    )
+                ].join('\n');
+                
+                const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'telco_support_tickets_dataset.csv';
+                link.click();
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-lg p-8 shadow-2xl">
+                            <h1 className="text-3xl font-bold text-white mb-2">
+                                Telco Support Tickets Dataset Generator
+                            </h1>
+                            <p className="text-slate-400 mb-6">
+                                Bilingual (Arabic + English) customer support dataset with realistic operational imperfections
+                            </p>
+                            
+                            <div className="mb-8">
+                                <button
+                                    onClick={generateDataset}
+                                    disabled={generating}
+                                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                                >
+                                    {generating ? 'Generating Dataset...' : 'Generate Dataset (2,000-3,000 rows)'}
+                                </button>
+                            </div>
+
+                            {stats && (
+                                <div className="space-y-6 mb-8">
+                                    <div className="bg-slate-900/50 rounded-lg p-6 border border-slate-700">
+                                        <h2 className="text-xl font-bold text-white mb-4">Dataset Statistics</h2>
+                                        
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                            <div className="bg-slate-800 rounded p-4">
+                                                <div className="text-slate-400 text-sm">Total Tickets</div>
+                                                <div className="text-2xl font-bold text-white">{stats.total}</div>
+                                            </div>
+                                            <div className="bg-slate-800 rounded p-4">
+                                                <div className="text-slate-400 text-sm">English</div>
+                                                <div className="text-2xl font-bold text-blue-400">
+                                                    {stats.languages.en || 0} ({((stats.languages.en || 0) / stats.total * 100).toFixed(1)}%)
+                                                </div>
+                                            </div>
+                                            <div className="bg-slate-800 rounded p-4">
+                                                <div className="text-slate-400 text-sm">Arabic</div>
+                                                <div className="text-2xl font-bold text-green-400">
+                                                    {stats.languages.ar || 0} ({((stats.languages.ar || 0) / stats.total * 100).toFixed(1)}%)
+                                                </div>
+                                            </div>
+                                            <div className="bg-slate-800 rounded p-4">
+                                                <div className="text-slate-400 text-sm">Missing Lang</div>
+                                                <div className="text-2xl font-bold text-amber-400">
+                                                    {stats.missing.language} ({(stats.missing.language / stats.total * 100).toFixed(1)}%)
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-white mb-3">Categories</h3>
+                                                <div className="space-y-2">
+                                                    {Object.entries(stats.categories).sort((a, b) => b[1] - a[1]).map(([cat, count]) => (
+                                                        <div key={cat} className="flex justify-between items-center">
+                                                            <span className="text-slate-300 text-sm">{cat}</span>
+                                                            <span className="text-slate-400 text-sm">
+                                                                {count} ({(count / stats.total * 100).toFixed(1)}%)
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-white mb-3">Priorities</h3>
+                                                <div className="space-y-2">
+                                                    {Object.entries(stats.priorities).sort().map(([pri, count]) => (
+                                                        <div key={pri} className="flex justify-between items-center">
+                                                            <span className="text-slate-300 text-sm">{pri}</span>
+                                                            <span className="text-slate-400 text-sm">
+                                                                {count} ({(count / stats.total * 100).toFixed(1)}%)
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                    <div className="flex justify-between items-center text-amber-400">
+                                                        <span className="text-sm">Missing</span>
+                                                        <span className="text-sm">
+                                                            {stats.missing.priority} ({(stats.missing.priority / stats.total * 100).toFixed(1)}%)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6">
+                                            <h3 className="text-lg font-semibold text-white mb-3">Channels</h3>
+                                            <div className="flex flex-wrap gap-4">
+                                                {Object.entries(stats.channels).map(([channel, count]) => (
+                                                    <div key={channel} className="bg-slate-800 rounded px-4 py-2">
+                                                        <span className="text-slate-300 text-sm">{channel}: </span>
+                                                        <span className="text-white font-medium">{count}</span>
+                                                    </div>
+                                                ))}
+                                                <div className="bg-amber-900/30 border border-amber-700 rounded px-4 py-2">
+                                                    <span className="text-amber-300 text-sm">missing: </span>
+                                                    <span className="text-amber-400 font-medium">{stats.missing.channel}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-900/50 rounded-lg p-6 border border-slate-700">
+                                        <h3 className="text-lg font-semibold text-white mb-3">Sample Tickets (First 5)</h3>
+                                        <div className="space-y-3 text-sm">
+                                            {dataset.slice(0, 5).map((ticket, idx) => (
+                                                <div key={idx} className="bg-slate-800 rounded p-3 border border-slate-700">
+                                                    <div className="grid grid-cols-2 gap-2 mb-2">
+                                                        <div><span className="text-slate-400">ID:</span> <span className="text-white">{ticket.ticket_id}</span></div>
+                                                        <div><span className="text-slate-400">Lang:</span> <span className="text-white">{ticket.language || 'missing'}</span></div>
+                                                        <div><span className="text-slate-400">Category:</span> <span className="text-blue-400">{ticket.true_category}</span></div>
+                                                        <div><span className="text-slate-400">Priority:</span> <span className="text-green-400">{ticket.true_priority || 'missing'}</span></div>
+                                                    </div>
+                                                    <div className="text-slate-300 italic">"{ticket.ticket_text}"</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={downloadCSV}
+                                        className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="7 10 12 15 17 10"></polyline>
+                                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                        Download CSV Dataset
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TelcoDatasetGenerator />);
+    </script>
+</body>
+</html>
