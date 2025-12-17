@@ -12,7 +12,7 @@ This repository is structured as a **phase-based project**, mirroring how real-w
 
 - **Phase 1** – Domain understanding & problem framing  
 - **Phase 1.5** – Ticket schema & decision-flow design  
-- **Phase 2** – Dataset design & realism (Arabic + English) ✅  
+- **Phase 2** – Dataset design & realism (Arabic + English) 
 
 Upcoming phases will cover:
 - Bilingual text preprocessing
